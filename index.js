@@ -444,7 +444,7 @@ app.post("/addproduct", async (req, res) => {
         await connection.close()
 
         res.json({ message: "Product Added Successfully" })
-    } catch(error) {
+    } catch (error) {
         res.status(500).json("something went wrong")
     }
 })
@@ -471,8 +471,8 @@ app.get("/getproducts", async (req, res) => {
 })
 
 //GET THE ONE PRODUCT
-app.get("/getoneproduct/:productid",async(req,res)=>{
-    try{
+app.get("/getoneproduct/:productid", async (req, res) => {
+    try {
         //connect the database
         const connection = await mongoClient.connect(URL)
 
@@ -480,15 +480,15 @@ app.get("/getoneproduct/:productid",async(req,res)=>{
         const db = connection.db("Inventory_billing_app")
 
         //select the collection
-        const getProduct = await db.collection("products").find({_id:mongodb.ObjectId(req.params.productid)}).toArray()
-
-        if(getProduct){
+        const getProduct = await db.collection("products").findOne({ _id: mongodb.ObjectId(req.params.productid) })
+        await connection.close()
+        if (getProduct) {
             res.json(getProduct)
-        }else{
-            res.status(404).json({message:"Product not found"})
+        } else {
+            res.status(404).json({ message: "Product not found" })
         }
-    }catch(error){
-        res.status(500).json({message:"something went wrong"})
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
     }
 })
 
@@ -567,27 +567,92 @@ app.get("/getusers", async (req, res) => {
     }
 })
 
-//DELETE THE USER
-app.delete("/deleteuser/:userid",async(req,res)=>{
-    try{
+//SET THE REASON FOR USER [THIS METHOD FOR DELETE THE USER WITH REASON]
+app.put("/setreason/:userid", async (req, res) => {
+    try {
         //connect the database
         const connection = await mongoClient.connect(URL)
-        
+
         //select the database
         const db = connection.db("Inventory_billing_app")
 
         //select the collection
         //Do operation
-        const deleteItem = await db.collection("user").deleteOne({_id:mongodb.ObjectId(req.params.userid)})
 
-        res.json({message:"deleted successfully"})
+        const setReason = await db.collection("user").updateOne({ _id: mongodb.ObjectId(req.params.userid) }, { $set: { reason: req.body.reason } })
+        console.log(setReason)
+
+        res.json({ message: 'updated successfully' })
+        await connection.close()
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
+    }
+})
+
+//DELETE THE USER
+app.delete("/deleteuser/:userid", async (req, res) => {
+    try {
+        //connect the database
+        const connection = await mongoClient.connect(URL)
+
+        //select the database
+        const db = connection.db("Inventory_billing_app")
+
+        //select the collection
+        //Do operation
+
+        const findEmail = await db.collection('user').findOne({ _id: mongodb.ObjectId(req.params.userid) })
+        console.log(findEmail.email)
+        console.log(findEmail)
+        if (findEmail) {
+
+            const transporter = nodemailer.createTransport({
+                service: "gmail",
+                auth: {
+                    user: process.env.US,
+                    pass: process.env.PS
+                }
+            })
+
+            const mailoptions = {
+                from: process.env.US,
+                to: `${findEmail.email}`,
+                subject: `Inventory Billing Application`,
+                html: `<h1>Hi, ${findEmail.username}</h1>
+                <h3>${findEmail.reason}.</h3>`
+            }
+
+            transporter.sendMail(mailoptions, (err, info) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log(info)
+                    // console.log(info.response)
+                }
+            })
+
+            transporter.close()
+
+            const deleteItem = await db.collection("user").deleteOne({ _id: mongodb.ObjectId(req.params.userid) })
+            res.json({ message: "deleted successfully" })
+
+        } else {
+            res.json({ message: "user not found" })
+        }
+
 
         //close the connection
         await connection.close()
-    }catch(error){
-        res.status(500).json({message:"something went wrong"})
+
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
     }
 })
+
+// "username": "surya",
+// "email": "suryaprakashr1025@gmail.com",
+// "phoneno": 9566953853,
+// "password":"surya123"
 
 //ASSIGN THE PRODUCT IN USER
 app.put("/addproductfield/:productid", async (req, res) => {
@@ -647,7 +712,7 @@ app.post("/orderproduct", async (req, res) => {
 })
 
 //USER GET THE ORDERLIST
-app.put("/orderlist/:orderid", async (req, res) => {
+app.get("/orderlist/:orderid", async (req, res) => {
     try {
         //CONNECT THE DATABASE
         const connection = await mongoClient.connect(URL)
@@ -657,7 +722,8 @@ app.put("/orderlist/:orderid", async (req, res) => {
 
         //SELECT THE COLLECTION
         //DO OPERATION 
-        const productId = await db.collection("orderlist").updateOne({ _id: mongodb.ObjectId(req.params.orderid) }, { $set: { productname: req.body.name } })
+        const productId = await db.collection("orderlist").updateOne({ _id: mongodb.ObjectId(req.params.orderid) }, { $set: { productId: req.body.pid } })
+
         const orderProduct = await db.collection("orderlist")
             .aggregate([
                 {
@@ -672,7 +738,8 @@ app.put("/orderlist/:orderid", async (req, res) => {
                         foreignField: `${productId}`,
                         as: "products"
                     }
-                },
+                }
+                ,
                 {
                     $project: {
                         _id: "$_id",
@@ -683,10 +750,89 @@ app.put("/orderlist/:orderid", async (req, res) => {
                 }
             ])
             .toArray()
-            console.log(orderProduct)
+        console.log(orderProduct)
         res.json(orderProduct)
     } catch (error) {
         res.status(500).json({ message: "somthing went wrong" })
+    }
+})
+
+//user give the reviews
+app.put("/reviews/:pId", async (req, res) => {
+    try {
+        const connection = await mongoClient.connect(URL)
+        const db = connection.db("Inventory_billing_app")
+        // const reviews = req.body.reviews
+        const putReview = await db.collection("products").updateOne({ _id: mongodb.ObjectId(req.params.pId) }, { $push: { reviews: req.body.reviews } })
+        //console.log(putReview)
+        res.json({ message: "push the review successfull" })
+        await connection.close()
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
+    }
+})
+
+//USER GET THE PRODUCT
+app.put("/usergetproduct/:userId", async (req, res) => {
+    try {
+        const connection = await mongoClient.connect(URL)
+        const db = connection.db("Inventory_billing_app")
+        const getProduct = await db.collection("user").updateOne({ _id: mongodb.ObjectId(req.params.userId) }, { $push: { products: req.body } })
+        console.log(getProduct)
+        res.json({ message: "product updated successfully", getProduct })
+        await connection.close()
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
+    }
+})
+
+//USER DELETE THE PRODUCT
+app.put("/userdeleteproduct/:userId", async (req, res) => {
+    try {
+        const connection = await mongoClient.connect(URL)
+        const db = connection.db("Inventory_billing_app")
+
+        // const findProduct = await db.collection("user").findOne({_id:mongodb.ObjectId(req.params.userId)})
+
+        // console.log(findProduct.products)
+        // const index = findProduct.products.findIndex(prod =>{
+        //     return prod.id === req.body.productid
+        // })
+        // console.log(index)
+        // console.log(findProduct.products[index])
+        // console.log(findProduct.products[index].id)
+
+        const deleteProduct = await db.collection("user").updateOne({ _id: mongodb.ObjectId(req.params.userId) }, { $pull: { products: { id: req.body.productid } } })
+        console.log(deleteProduct)
+        res.json({ message: "product deleted successfully" })
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
+    }
+})
+
+//GET ONE USER
+app.get("/getoneuser/:userId", async (req, res) => {
+    try {
+        const connection = await mongoClient.connect(URL)
+        const db = connection.db("Inventory_billing_app")
+        //const getUser = await db.collection("user").findOne({_id:mongodb.ObjectId(req.params.userId)})
+        const getUser = await db.collection("user").aggregate([
+            {
+                $match: {
+                    _id: mongodb.ObjectId(req.params.userId)
+                }
+            },
+            {
+                $project: {
+                    products: "$products"
+                }
+            }
+        ]).toArray()
+
+        res.json(getUser)
+        await connection.close()
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
     }
 })
 
