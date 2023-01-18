@@ -13,7 +13,7 @@ const app = express()
 // MIDDLEWARE
 
 app.use(cors({
-    origin: "http://localhost:3000",
+    // origin: "http://localhost:3000",
     origin: "*",
 }))
 
@@ -792,19 +792,23 @@ app.put("/userdeleteproduct/:userId", async (req, res) => {
         const connection = await mongoClient.connect(URL)
         const db = connection.db("Inventory_billing_app")
 
-        // const findProduct = await db.collection("user").findOne({_id:mongodb.ObjectId(req.params.userId)})
+        const findProduct = await db.collection("user").findOne({_id:mongodb.ObjectId(req.params.userId)})
 
-        // console.log(findProduct.products)
-        // const index = findProduct.products.findIndex(prod =>{
-        //     return prod.id === req.body.productid
-        // })
-        // console.log(index)
+        console.log(findProduct.products)
+        const index = findProduct.products.some(prod =>{
+            return prod.id === req.body.id
+        })
+         console.log(index)
         // console.log(findProduct.products[index])
         // console.log(findProduct.products[index].id)
+        if (index) {
+            const deleteProduct = await db.collection("user").updateOne({ _id: mongodb.ObjectId(req.params.userId) }, { $pull: { products: { id: req.body.id } } })
+            console.log(deleteProduct)
+            res.json({ message: "product deleted successfully" })
+        }else{
+            res.json({message:"Product Not found"})
+        }
 
-        const deleteProduct = await db.collection("user").updateOne({ _id: mongodb.ObjectId(req.params.userId) }, { $pull: { products: { id: req.body.productid } } })
-        console.log(deleteProduct)
-        res.json({ message: "product deleted successfully" })
     } catch (error) {
         res.status(500).json({ message: "something went wrong" })
     }
