@@ -792,21 +792,21 @@ app.put("/userdeleteproduct/:userId", async (req, res) => {
         const connection = await mongoClient.connect(URL)
         const db = connection.db("Inventory_billing_app")
 
-        const findProduct = await db.collection("user").findOne({_id:mongodb.ObjectId(req.params.userId)})
+        const findProduct = await db.collection("user").findOne({ _id: mongodb.ObjectId(req.params.userId) })
 
         console.log(findProduct.products)
-        const index = findProduct.products.some(prod =>{
+        const index = findProduct.products.some(prod => {
             return prod.id === req.body.id
         })
-         console.log(index)
+        console.log(index)
         // console.log(findProduct.products[index])
         // console.log(findProduct.products[index].id)
         if (index) {
             const deleteProduct = await db.collection("user").updateOne({ _id: mongodb.ObjectId(req.params.userId) }, { $pull: { products: { id: req.body.id } } })
             console.log(deleteProduct)
             res.json({ message: "product deleted successfully" })
-        }else{
-            res.json({message:"Product Not found"})
+        } else {
+            res.json({ message: "Product Not found" })
         }
 
     } catch (error) {
@@ -839,5 +839,57 @@ app.get("/getoneuser/:userId", async (req, res) => {
         res.status(500).json({ message: "something went wrong" })
     }
 })
+
+//CHANGE QUANTITY 
+app.put("/changequantity/:productid", async (req, res) => {
+    try {
+        const connection = await mongoClient.connect(URL)
+        const db = connection.db("Inventory_billing_app")
+
+        const find = await db.collection("products").findOne({ _id: mongodb.ObjectId(req.params.productid) })
+
+        // const changeqty = find.countInStock - req.body.qty
+        // console.log(changeqty)
+        delete req.body._id
+        if (find) {
+            const sub = await db.collection("products").updateOne({ _id: mongodb.ObjectId(req.params.productid) },
+                { $set: { countInStock: req.body.countInStock } })
+            console.log(sub)
+
+            res.json({ message: "changed the quantity value(sub)" })
+        }else{
+            res.json({ message: "product not found" })
+        }
+
+        await connection.close()
+
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
+    }
+})
+
+// ADD QUANTITY 
+// app.put("/addquantity/:productid", async (req, res) => {
+//     try {
+//         const connection = await mongoClient.connect(URL)
+//         const db = connection.db("Inventory_billing_app")
+
+//         const find = await db.collection("products").findOne({ _id: mongodb.ObjectId(req.params.productid) })
+
+//         const changeqty = find.countInStock + req.body.qty
+//         console.log(changeqty)
+
+//         const sub = await db.collection("products").updateOne({ _id: mongodb.ObjectId(req.params.productid) },
+//             { $set: { countInStock: changeqty } })
+//         console.log(sub)
+
+//         res.json({ message: "changed the quantity value(add)" })
+//         await connection.close()
+
+//     } catch (error) {
+//         res.status(500).json({ message: "something went wrong" })
+//     }
+// })
+
 
 app.listen(4000)
