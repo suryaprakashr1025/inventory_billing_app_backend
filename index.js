@@ -711,8 +711,8 @@ app.post("/orderproduct", async (req, res) => {
     }
 })
 
-//USER GET THE ORDERLIST
-app.get("/orderlist/:orderid", async (req, res) => {
+// GET THE ORDERLIST
+app.get("/orderlist", async (req, res) => {
     try {
         //CONNECT THE DATABASE
         const connection = await mongoClient.connect(URL)
@@ -722,55 +722,27 @@ app.get("/orderlist/:orderid", async (req, res) => {
 
         //SELECT THE COLLECTION
         //DO OPERATION 
-        const productId = await db.collection("orderlist").updateOne({ _id: mongodb.ObjectId(req.params.orderid) }, { $set: { productId: req.body.pid } })
-
-        const orderProduct = await db.collection("orderlist")
-            .aggregate([
-                {
-                    $match: {
-                        _id: mongodb.ObjectId(req.params.orderid)
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "products",
-                        localField: `${req.params.orderid}`,
-                        foreignField: `${productId}`,
-                        as: "products"
-                    }
-                }
-                ,
-                {
-                    $project: {
-                        _id: "$_id",
-                        productname: "$productname",
-                        price: "$products.price",
-                        qty: "$products.countInStock"
-                    }
-                }
-            ])
-            .toArray()
-        console.log(orderProduct)
-        res.json(orderProduct)
+        const productId = await db.collection("orderlist").find().toArray()
+        res.json(productId)
     } catch (error) {
         res.status(500).json({ message: "somthing went wrong" })
     }
 })
 
 //user give the reviews
-app.put("/reviews/:pId", async (req, res) => {
-    try {
-        const connection = await mongoClient.connect(URL)
-        const db = connection.db("Inventory_billing_app")
-        // const reviews = req.body.reviews
-        const putReview = await db.collection("products").updateOne({ _id: mongodb.ObjectId(req.params.pId) }, { $push: { reviews: req.body.reviews } })
-        //console.log(putReview)
-        res.json({ message: "push the review successfull" })
-        await connection.close()
-    } catch (error) {
-        res.status(500).json({ message: "something went wrong" })
-    }
-})
+// app.put("/reviews/:pId", async (req, res) => {
+//     try {
+//         const connection = await mongoClient.connect(URL)
+//         const db = connection.db("Inventory_billing_app")
+//         // const reviews = req.body.reviews
+//         const putReview = await db.collection("products").updateOne({ _id: mongodb.ObjectId(req.params.pId) }, { $push: { reviews: req.body.reviews } })
+//         //console.log(putReview)
+//         res.json({ message: "push the review successfull" })
+//         await connection.close()
+//     } catch (error) {
+//         res.status(500).json({ message: "something went wrong" })
+//     }
+// })
 
 //USER GET THE PRODUCT
 app.put("/usergetproduct/:userId", async (req, res) => {
@@ -868,28 +840,7 @@ app.put("/changequantity/:productid", async (req, res) => {
     }
 })
 
-// ADD QUANTITY 
-// app.put("/addquantity/:productid", async (req, res) => {
-//     try {
-//         const connection = await mongoClient.connect(URL)
-//         const db = connection.db("Inventory_billing_app")
 
-//         const find = await db.collection("products").findOne({ _id: mongodb.ObjectId(req.params.productid) })
-
-//         const changeqty = find.countInStock + req.body.qty
-//         console.log(changeqty)
-
-//         const sub = await db.collection("products").updateOne({ _id: mongodb.ObjectId(req.params.productid) },
-//             { $set: { countInStock: changeqty } })
-//         console.log(sub)
-
-//         res.json({ message: "changed the quantity value(add)" })
-//         await connection.close()
-
-//     } catch (error) {
-//         res.status(500).json({ message: "something went wrong" })
-//     }
-// })
 
 
 app.listen(4000)
