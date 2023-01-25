@@ -729,6 +729,18 @@ app.get("/orderlist", async (req, res) => {
     }
 })
 
+//DELETE THE ORDERLIST
+app.delete("/deleteorder/:orderid",async(req,res)=>{
+    try{
+        const connection = await mongoClient.connect(URL)
+        const db = connection.db("Inventory_billing_app")
+        const deleteorder = await db.collection("orderlist").deleteOne({_id:mongodb.ObjectId(req.params.orderid)})
+        res.json({message:"Deleted the product"})
+        await connection.close()
+    }catch(error){
+        res.status(500).json({message:"something went wrong"})
+    }
+})
 //user give the reviews
 // app.put("/reviews/:pId", async (req, res) => {
 //     try {
