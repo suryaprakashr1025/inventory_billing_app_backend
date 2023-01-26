@@ -730,15 +730,21 @@ app.get("/orderlist", async (req, res) => {
 })
 
 //DELETE THE ORDERLIST
-app.delete("/deleteorder/:orderid",async(req,res)=>{
-    try{
+app.delete("/deleteorder/:orderid", async (req, res) => {
+    try {
         const connection = await mongoClient.connect(URL)
         const db = connection.db("Inventory_billing_app")
-        const deleteorder = await db.collection("orderlist").deleteOne({_id:mongodb.ObjectId(req.params.orderid)})
-        res.json({message:"Deleted the product"})
+        const findorder = await db.collection("orderlist").findOne({ _id: mongodb.ObjectId(req.params.orderid) })
+        if (findorder) {
+            const deleteorder = await db.collection("orderlist").deleteOne({ _id: mongodb.ObjectId(req.params.orderid) })
+            res.json({ message: "Deleted the product" })
+        } else {
+            res.json({ message: "orderid is not found" })
+        }
+
         await connection.close()
-    }catch(error){
-        res.status(500).json({message:"something went wrong"})
+    } catch (error) {
+        res.status(500).json({ message: "something went wrong" })
     }
 })
 //user give the reviews
@@ -841,7 +847,7 @@ app.put("/changequantity/:productid", async (req, res) => {
             console.log(sub)
 
             res.json({ message: "changed the quantity value(sub)" })
-        }else{
+        } else {
             res.json({ message: "product not found" })
         }
 
