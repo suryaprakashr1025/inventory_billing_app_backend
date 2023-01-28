@@ -125,10 +125,13 @@ app.post("/user/register", async (req, res) => {
             const checkEmail = await db.collection("user").find({ email: req.body.email }).toArray()
             console.log(checkEmail.length)
 
-            if (checkEmail.length === 0) {
+            const checkPhone = await db.collection("user").find({ phoneno: parseInt(req.body.phoneno) }).toArray()
+            console.log(checkPhone.length)
+
+            if (checkEmail.length === 0 && checkPhone.length===0) {
                 const user = await db.collection("user").insertOne(req.body)
                 console.log(user)
-                res.status(200).json({ message: "user created" })
+                res.status(200).json({ message: "user created successfully" })
             } else {
                 res.json({ message: "username,email and password is already exists" })
             }
